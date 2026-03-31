@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Machine — Agente de Carrossel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --dark: #111111;
+    --card: #161616;
+    --border: #222222;
+    --orange: #FF5C00;
+    --orange-light: #FF7A2F;
+    --white: #FFFFFF;
+    --grey: #888888;
+    --grey-light: #CCCCCC;
+    --slide-w: 390px;
+    --slide-h: 390px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+  .logo span { color: var(--orange); }
+  .badge {
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--grey);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 65px);
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 65px);
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 10px;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--grey-light);
+    letter-spacing: 0.5px;
+  }
+
+  input, textarea, select {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+    transition: border 0.2s;
+    resize: none;
+  }
+  input::placeholder, textarea::placeholder { color: #444; }
+  input:focus, textarea:focus, select:focus { border-color: var(--orange); }
+  select option { background: var(--dark); }
+
+  /* Tom de voz */
+  .tom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .tom-btn {
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--grey);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    font-weight: 500;
+  }
+  .tom-btn:hover { border-color: #444; color: var(--white); }
+  .tom-btn.active { border-color: var(--orange); color: var(--orange); background: rgba(255,92,0,0.08); }
+
+  /* Paletas */
+  .paleta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .paleta-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--grey);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .paleta-btn:hover { border-color: #444; color: var(--white); }
+  .paleta-btn.active { border-color: var(--orange); color: var(--white); }
+  .paleta-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Slides count */
+  .slides-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .count-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--white);
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .count-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .count-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--white);
+    min-width: 32px;
+    text-align: center;
+  }
+  .count-label { font-size: 12px; color: var(--grey); }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); }
+
+  /* CTA Input */
+  .cta-row { display: flex; flex-direction: column; gap: 6px; }
+
+  /* Generate button */
+  .btn-generate {
+    background: var(--orange);
+    color: var(--white);
+    border: none;
+    padding: 16px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .btn-generate:hover { background: var(--orange-light); transform: translateY(-1px); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-icon { font-size: 16px; }
+
+  /* ─── CANVAS ─── */
+  .canvas {
+    padding: 32px;
+    overflow-y: auto;
+    max-height: calc(100vh - 65px);
+    background: #0d0d0d;
+  }
+
+  .canvas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .canvas-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .btn-copy-all {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--grey);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: none;
+  }
+  .btn-copy-all:hover { border-color: var(--orange); color: var(--orange); }
+  .btn-copy-all.visible { display: block; }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 200px);
+    gap: 16px;
+    opacity: 0.4;
+  }
+  .empty-icon { font-size: 48px; }
+  .empty-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .empty-sub { font-size: 13px; color: var(--grey); }
+
+  /* Loading */
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 200px);
+    gap: 20px;
+  }
+  .loading-state.active { display: flex; }
+  .loader {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .loading-sub {
+    font-size: 13px;
+    color: var(--grey);
+    text-align: center;
+    max-width: 300px;
+  }
+
+  /* ─── SLIDES GRID ─── */
+  .slides-area { display: none; }
+  .slides-area.active { display: block; }
+
+  .slides-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .slides-scroll::-webkit-scrollbar { height: 4px; }
+  .slides-scroll::-webkit-scrollbar-track { background: transparent; }
+  .slides-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ─── SLIDE CARD ─── */
+  .slide-wrapper { flex-shrink: 0; }
+  .slide-num {
+    font-size: 11px;
+    color: var(--grey);
+    margin-bottom: 8px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  .slide {
+    width: var(--slide-w);
+    height: var(--slide-h);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    font-family: 'Syne', sans-serif;
+    flex-shrink: 0;
+  }
+
+  /* ── TEMA: DARK ORANGE (BrandsDecoded style) ── */
+  .tema-dark .slide { background: #0f0f0f; }
+  .tema-dark .s-tag { background: var(--orange); color: #fff; }
+  .tema-dark .s-headline { color: #fff; }
+  .tema-dark .s-headline em { color: var(--orange); font-style: normal; }
+  .tema-dark .s-body { color: #aaa; }
+  .tema-dark .s-arrow { color: var(--orange); }
+  .tema-dark .s-handle { color: #555; }
+  .tema-dark .s-counter { color: #555; }
+  .tema-dark .s-cta-btn { background: var(--orange); color: #fff; }
+  .tema-dark .s-x-item { color: #ff4444; }
+  .tema-dark .s-check-item { color: #aaa; }
+  .tema-dark .s-check-icon { color: #4CAF50; }
+  .tema-dark .s-divider { background: #222; }
+  .tema-dark .s-label { color: var(--orange); }
+  .tema-dark .s-cover-bg { background: linear-gradient(160deg, #1a1a1a 0%, #0a0a0a 100%); }
+  .tema-dark .s-accent-bar { background: var(--orange); }
+  .tema-dark .s-img-placeholder { background: #1e1e1e; border: 1px solid #2a2a2a; }
+
+  /* ── TEMA: LIGHT ── */
+  .tema-light .slide { background: #f5f5f0; }
+  .tema-light .s-tag { background: #111; color: #fff; }
+  .tema-light .s-headline { color: #111; }
+  .tema-light .s-headline em { color: var(--orange); font-style: normal; }
+  .tema-light .s-body { color: #555; }
+  .tema-light .s-arrow { color: var(--orange); }
+  .tema-light .s-handle { color: #999; }
+  .tema-light .s-counter { color: #999; }
+  .tema-light .s-cta-btn { background: #111; color: #fff; }
+  .tema-light .s-x-item { color: #cc0000; }
+  .tema-light .s-check-item { color: #444; }
+  .tema-light .s-check-icon { color: #4CAF50; }
+  .tema-light .s-divider { background: #ddd; }
+  .tema-light .s-label { color: var(--orange); }
+  .tema-light .s-cover-bg { background: linear-gradient(160deg, #ebebeb 0%, #f5f5f0 100%); }
+  .tema-light .s-accent-bar { background: var(--orange); }
+  .tema-light .s-img-placeholder { background: #e5e5e0; border: 1px solid #d5d5d0; }
+
+  /* ── TEMA: ORANGE ── */
+  .tema-orange .slide { background: var(--orange); }
+  .tema-orange .s-tag { background: #000; color: #fff; }
+  .tema-orange .s-headline { color: #000; }
+  .tema-orange .s-headline em { color: #fff; font-style: normal; }
+  .tema-orange .s-body { color: rgba(0,0,0,0.7); }
+  .tema-orange .s-arrow { color: #000; }
+  .tema-orange .s-handle { color: rgba(0,0,0,0.5); }
+  .tema-orange .s-counter { color: rgba(0,0,0,0.5); }
+  .tema-orange .s-cta-btn { background: #000; color: #fff; }
+  .tema-orange .s-x-item { color: #7a0000; }
+  .tema-orange .s-check-item { color: rgba(0,0,0,0.8); }
+  .tema-orange .s-check-icon { color: #000; }
+  .tema-orange .s-divider { background: rgba(0,0,0,0.2); }
+  .tema-orange .s-label { color: #000; }
+  .tema-orange .s-cover-bg { background: linear-gradient(160deg, #ff6a1a 0%, #e04a00 100%); }
+  .tema-orange .s-accent-bar { background: #000; }
+  .tema-orange .s-img-placeholder { background: rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.1); }
+
+  /* ── TEMA: MIDNIGHT ── */
+  .tema-midnight .slide { background: #0a0e1a; }
+  .tema-midnight .s-tag { background: #4f6df5; color: #fff; }
+  .tema-midnight .s-headline { color: #fff; }
+  .tema-midnight .s-headline em { color: #4f6df5; font-style: normal; }
+  .tema-midnight .s-body { color: #8895b3; }
+  .tema-midnight .s-arrow { color: #4f6df5; }
+  .tema-midnight .s-handle { color: #3a4460; }
+  .tema-midnight .s-counter { color: #3a4460; }
+  .tema-midnight .s-cta-btn { background: #4f6df5; color: #fff; }
+  .tema-midnight .s-x-item { color: #f54f4f; }
+  .tema-midnight .s-check-item { color: #8895b3; }
+  .tema-midnight .s-check-icon { color: #4fcf7a; }
+  .tema-midnight .s-divider { background: #1a2035; }
+  .tema-midnight .s-label { color: #4f6df5; }
+  .tema-midnight .s-cover-bg { background: linear-gradient(160deg, #111825 0%, #0a0e1a 100%); }
+  .tema-midnight .s-accent-bar { background: #4f6df5; }
+  .tema-midnight .s-img-placeholder { background: #111825; border: 1px solid #1a2035; }
+
+  /* ─── SLIDE INTERNO ─── */
+  .s-inner {
+    width: 100%;
+    height: 100%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .s-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .s-handle { font-size: 10px; font-family: 'DM Sans', sans-serif; }
+  .s-counter { font-size: 10px; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+
+  .s-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    align-self: flex-start;
+  }
+
+  .s-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    flex: 1;
+  }
+  .s-headline.big { font-size: 32px; }
+  .s-headline.bebas { font-family: 'Bebas Neue', sans-serif; font-size: 42px; line-height: 1; }
+
+  .s-body {
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .s-label {
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .s-list { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+  .s-arrow-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.4;
+  }
+  .s-arrow { font-weight: 700; flex-shrink: 0; }
+
+  .s-x-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.4;
+  }
+
+  .s-check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.4;
+  }
+  .s-check-icon { flex-shrink: 0; font-size: 13px; }
+
+  .s-divider { height: 1px; margin: 12px 0; }
+
+  .s-img-placeholder {
+    width: 100%;
+    height: 120px;
+    border-radius: 8px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .s-img-placeholder span { font-size: 10px; color: #444; font-family: 'DM Sans', sans-serif; }
+
+  .s-accent-bar { width: 32px; height: 3px; border-radius: 2px; margin-bottom: 14px; }
+
+  .s-footer {
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .s-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .s-cta-txt {
+    font-size: 10px;
+    font-family: 'DM Sans', sans-serif;
+    margin-top: 6px;
+    opacity: 0.5;
+  }
+
+  /* ─── COPY PANEL ─── */
+  .copy-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 8px;
+  }
+  .copy-panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .copy-panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .copy-slides { display: flex; flex-direction: column; gap: 16px; }
+
+  .copy-slide {
+    padding: 16px;
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .copy-slide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .copy-slide-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .copy-slide-type {
+    font-size: 10px;
+    color: var(--grey);
+    letter-spacing: 0.5px;
+  }
+  .copy-slide-content {
+    font-size: 13px;
+    color: var(--grey-light);
+    line-height: 1.7;
+    font-family: 'DM Sans', sans-serif;
+    white-space: pre-wrap;
+  }
+  .btn-copy-slide {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--grey);
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-copy-slide:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ─── ERROR ─── */
+  .error-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1a0a0a;
+    border: 1px solid #ff4444;
+    color: #ff8888;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    display: none;
+    z-index: 999;
+    max-width: 340px;
+  }
+  .error-toast.show { display: block; animation: fadeInUp 0.3s ease; }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+    .canvas { max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CONTENT <span>MACHINE</span></div>
+  <div class="badge">Agente de Carrossel IA</div>
+</header>
+
+<div class="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+
+    <input id="gemini-key" type="hidden" value="AIzaSyD-Y-lWaJeX9LOiGT8YfDFXKHqKONjGrRo">
+
+    <div>
+      <div class="section-label">Conteúdo</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="field-group">
+          <label>Tema do carrossel</label>
+          <textarea id="tema" rows="3" placeholder="Ex: 3 erros que te impedem de crescer no Instagram"></textarea>
+        </div>
+        <div class="field-group">
+          <label>Seu nicho</label>
+          <input id="nicho" type="text" placeholder="Ex: Marketing Digital, Emagrecimento, Finanças...">
+        </div>
+        <div class="field-group">
+          <label>Seu @</label>
+          <input id="handle" type="text" placeholder="@seuarroba">
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="section-label">Tom de voz</div>
+      <div class="tom-grid">
+        <button class="tom-btn active" data-tom="bold" onclick="setTom(this)">⚡ Bold</button>
+        <button class="tom-btn" data-tom="educativo" onclick="setTom(this)">📚 Educativo</button>
+        <button class="tom-btn" data-tom="provocador" onclick="setTom(this)">🔥 Provocador</button>
+        <button class="tom-btn" data-tom="inspiracional" onclick="setTom(this)">✨ Inspiracional</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="section-label">Paleta de cores</div>
+      <div class="paleta-grid">
+        <button class="paleta-btn active" data-paleta="dark" onclick="setPaleta(this)">
+          <span class="paleta-dot" style="background:#FF5C00"></span> Dark
+        </button>
+        <button class="paleta-btn" data-paleta="light" onclick="setPaleta(this)">
+          <span class="paleta-dot" style="background:#f5f5f0;border:1px solid #ddd"></span> Light
+        </button>
+        <button class="paleta-btn" data-paleta="orange" onclick="setPaleta(this)">
+          <span class="paleta-dot" style="background:#FF5C00"></span> Orange
+        </button>
+        <button class="paleta-btn" data-paleta="midnight" onclick="setPaleta(this)">
+          <span class="paleta-dot" style="background:#4f6df5"></span> Midnight
+        </button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="section-label">Quantidade de slides</div>
+      <div class="slides-row">
+        <button class="count-btn" onclick="changeCount(-1)">−</button>
+        <div class="count-display" id="count-display">7</div>
+        <button class="count-btn" onclick="changeCount(1)">+</button>
+        <div class="count-label">slides</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field-group cta-row">
+      <label>CTA do último slide</label>
+      <input id="cta" type="text" placeholder="Ex: Salva esse post e me segue!">
+    </div>
+
+    <button class="btn-generate" id="btn-gen" onclick="gerarCarrossel()">
+      <span class="btn-icon">⚡</span> GERAR CARROSSEL
+    </button>
+
+  </aside>
+
+  <!-- ─── CANVAS ─── -->
+  <main class="canvas">
+
+    <div class="canvas-header">
+      <div class="canvas-title">Preview dos Slides</div>
+      <button class="btn-copy-all" id="btn-copy-all" onclick="copiarTudo()">Copiar todos os textos</button>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">▣</div>
+      <div class="empty-text">Nenhum carrossel gerado</div>
+      <div class="empty-sub">Configure o painel ao lado e clique em Gerar</div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" id="loading-state">
+      <div class="loader"></div>
+      <div class="loading-text">Gerando seu carrossel...</div>
+      <div class="loading-sub">A IA está criando os textos e montando o layout</div>
+    </div>
+
+    <!-- Slides area -->
+    <div class="slides-area" id="slides-area">
+      <div class="slides-scroll" id="slides-scroll"></div>
+      <div class="copy-panel" id="copy-panel">
+        <div class="copy-panel-title">Copy completo</div>
+        <div class="copy-slides" id="copy-slides"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Error Toast -->
+<div class="error-toast" id="error-toast"></div>
+
+<script>
+  let tomAtual = 'bold';
+  let paletaAtual = 'dark';
+  let countAtual = 7;
+
+  function setTom(btn) {
+    document.querySelectorAll('.tom-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tomAtual = btn.dataset.tom;
+  }
+
+  function setPaleta(btn) {
+    document.querySelectorAll('.paleta-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    paletaAtual = btn.dataset.paleta;
+  }
+
+  function changeCount(delta) {
+    countAtual = Math.min(10, Math.max(3, countAtual + delta));
+    document.getElementById('count-display').textContent = countAtual;
+  }
+
+  function showError(msg) {
+    const t = document.getElementById('error-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 5000);
+  }
+
+  async function gerarCarrossel() {
+    const tema = document.getElementById('tema').value.trim();
+    const nicho = document.getElementById('nicho').value.trim();
+    const handle = document.getElementById('handle').value.trim() || '@seuarroba';
+    const cta = document.getElementById('cta').value.trim() || 'Salva esse post e me segue para mais!';
+
+    if (!tema) { showError('⚠️ Digite o tema do carrossel'); return; }
+    if (!nicho) { showError('⚠️ Digite seu nicho'); return; }
+
+    const btn = document.getElementById('btn-gen');
+    btn.disabled = true;
+
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('slides-area').classList.remove('active');
+    document.getElementById('loading-state').classList.add('active');
+    document.getElementById('btn-copy-all').classList.remove('visible');
+
+    const tomDesc = {
+      bold: 'direto, confiante, sem rodeios, frases curtas e de impacto, linguagem de autoridade',
+      educativo: 'didático, claro, com exemplos, linguagem acessível, tom de professor',
+      provocador: 'questionador, vai contra o senso comum, gera desconforto produtivo, polêmico mas baseado em fatos',
+      inspiracional: 'motivacional, emocional, histórias e transformações, inspira ação'
+    };
+
+    const prompt = `Você é um especialista em criação de conteúdo viral para Instagram no nicho de ${nicho}.
+
+Crie um carrossel de ${countAtual} slides sobre: "${tema}"
+
+Tom de voz: ${tomDesc[tomAtual]}
+
+Handle do criador: ${handle}
+CTA final: ${cta}
+
+RETORNE APENAS UM JSON VÁLIDO (sem markdown, sem texto antes ou depois), nesse formato exato:
+{
+  "slides": [
+    {
+      "tipo": "capa",
+      "numero": "1/${countAtual}",
+      "headline": "HEADLINE IMPACTANTE aqui",
+      "subheadline": "subtítulo complementar curto",
+      "tag": "opcional"
+    },
+    {
+      "tipo": "conteudo",
+      "numero": "2/${countAtual}",
+      "label": "label curto opcional",
+      "headline": "headline do slide",
+      "items": ["item 1", "item 2", "item 3"],
+      "formato": "arrows"
+    }
+  ]
+}
+
+REGRAS:
+- Slide 1: sempre tipo "capa" com headline forte, use maiúsculas estratégicas
+- Slides do meio: alternar entre formato "arrows" (→ item), "x-list" (✗ mitos), "check-list" (✓ verdades), "texto" (parágrafo)
+- Último slide: tipo "cta" com o CTA fornecido
+- Headlines curtos e de impacto (máx 8 palavras)
+- Items de lista: máx 3-4 por slide, frases diretas
+- Use a palavra "em" para destaque em itálico no JSON assim: texto *palavra* texto
+- Gere ${countAtual} slides no total`;
+
+    const GEMINI_KEY = document.getElementById('gemini-key').value.trim();
+    if (!GEMINI_KEY) {
+      document.getElementById('loading-state').classList.remove('active');
+      document.getElementById('empty-state').style.display = 'flex';
+      btn.disabled = false;
+      showError('⚠️ Cole sua chave da API Gemini no campo acima.');
+      return;
+    }
+
+    try {
+      // Usando proxy CORS para funcionar direto do arquivo local (file://)
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+
+      const body = JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 2048
+        }
+      });
+
+      // Tenta direto primeiro, cai no proxy se der CORS
+      let data;
+      try {
+        const directResp = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        });
+        if (!directResp.ok) {
+          const e = await directResp.json();
+          throw new Error(e?.error?.message || `Erro HTTP ${directResp.status}`);
+        }
+        data = await directResp.json();
+      } catch(corsErr) {
+        // Fallback via proxy allorigins
+        const proxyResp = await fetch(`https://api.allorigins.win/post?url=${encodeURIComponent(apiUrl)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: body })
+        });
+        if (!proxyResp.ok) throw new Error('Proxy indisponível. Tente hospedar o arquivo online.');
+        const wrapper = await proxyResp.json();
+        data = JSON.parse(wrapper.contents);
+      }
+
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!raw) throw new Error('Resposta vazia. O modelo pode ter recusado o prompt.');
+
+      // Remove markdown code fences se o modelo retornar
+      const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/,'').trim();
+
+      let parsed;
+      try {
+        parsed = JSON.parse(clean);
+      } catch(_) {
+        // Tenta extrair JSON do meio do texto
+        const match = clean.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('Não foi possível extrair JSON da resposta.');
+        parsed = JSON.parse(match[0]);
+      }
+
+      if (!parsed.slides || !Array.isArray(parsed.slides)) {
+        throw new Error('Estrutura inválida: campo "slides" não encontrado.');
+      }
+
+      renderSlides(parsed.slides, handle, paletaAtual);
+
+    } catch(e) {
+      document.getElementById('loading-state').classList.remove('active');
+      document.getElementById('empty-state').style.display = 'flex';
+      showError('❌ ' + (e.message || 'Erro desconhecido. Tente novamente.'));
+    }
+
+    btn.disabled = false;
+  }
+
+  function highlight(text) {
+    if (!text) return '';
+    return text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  }
+
+  function renderSlides(slides, handle, paleta) {
+    const scroll = document.getElementById('slides-scroll');
+    const copyEl = document.getElementById('copy-slides');
+    scroll.innerHTML = '';
+    copyEl.innerHTML = '';
+
+    slides.forEach((slide, i) => {
+      // ── SLIDE VISUAL ──
+      const wrapper = document.createElement('div');
+      wrapper.className = 'slide-wrapper';
+
+      const num = document.createElement('div');
+      num.className = 'slide-num';
+      num.textContent = `Slide ${i + 1}`;
+      wrapper.appendChild(num);
+
+      const slideEl = document.createElement('div');
+      slideEl.className = `slide tema-${paleta}`;
+
+      slideEl.innerHTML = buildSlideHTML(slide, handle, paleta);
+      wrapper.appendChild(slideEl);
+      scroll.appendChild(wrapper);
+
+      // ── COPY PANEL ──
+      const copySlide = document.createElement('div');
+      copySlide.className = 'copy-slide';
+
+      const copyTxt = buildCopyText(slide);
+      copySlide.innerHTML = `
+        <div class="copy-slide-header">
+          <span class="copy-slide-num">Slide ${i+1}</span>
+          <span class="copy-slide-type">${slide.tipo}</span>
+          <button class="btn-copy-slide" onclick="copiarSlide(this, '${encodeURIComponent(copyTxt)}')">Copiar</button>
+        </div>
+        <div class="copy-slide-content">${copyTxt}</div>
+      `;
+      copyEl.appendChild(copySlide);
+    });
+
+    document.getElementById('loading-state').classList.remove('active');
+    document.getElementById('slides-area').classList.add('active');
+    document.getElementById('btn-copy-all').classList.add('visible');
+  }
+
+  function buildSlideHTML(slide, handle, paleta) {
+    const topbar = `<div class="s-topbar"><span class="s-handle">${handle}</span><span class="s-counter">${slide.numero || ''}</span></div>`;
+
+    if (slide.tipo === 'capa') {
+      return `<div class="s-inner">
+        ${topbar}
+        <div class="s-accent-bar"></div>
+        ${slide.tag ? `<div class="s-tag">${slide.tag}</div>` : ''}
+        <div class="s-headline bebas">${highlight(slide.headline)}</div>
+        ${slide.subheadline ? `<div class="s-body">${slide.subheadline}</div>` : ''}
+        <div class="s-footer"></div>
+      </div>`;
+    }
+
+    if (slide.tipo === 'cta') {
+      return `<div class="s-inner">
+        ${topbar}
+        <div class="s-accent-bar"></div>
+        <div class="s-headline big">${highlight(slide.headline || slide.cta)}</div>
+        ${slide.subtexto ? `<div class="s-body">${slide.subtexto}</div>` : ''}
+        <div class="s-footer">
+          <div class="s-cta-btn">→ ${slide.cta || 'Me segue!'}</div>
+          <div class="s-cta-txt">Compartilha com quem precisa ver isso</div>
+        </div>
+      </div>`;
+    }
+
+    // conteúdo
+    let listHTML = '';
+    if (slide.formato === 'arrows' && slide.items) {
+      listHTML = `<div class="s-list">` + slide.items.map(it =>
+        `<div class="s-arrow-item"><span class="s-arrow">→</span><span class="s-body" style="margin:0">${highlight(it)}</span></div>`
+      ).join('') + `</div>`;
+    } else if (slide.formato === 'x-list' && slide.items) {
+      listHTML = `<div class="s-list">` + slide.items.map(it =>
+        `<div class="s-x-item"><span style="font-weight:700">✗</span><span class="s-body" style="margin:0">${highlight(it)}</span></div>`
+      ).join('') + `</div>`;
+    } else if (slide.formato === 'check-list' && slide.items) {
+      listHTML = `<div class="s-list">` + slide.items.map(it =>
+        `<div class="s-check-item"><span class="s-check-icon">✓</span><span class="s-body" style="margin:0">${highlight(it)}</span></div>`
+      ).join('') + `</div>`;
+    } else if (slide.texto) {
+      listHTML = `<div class="s-body" style="flex:1">${highlight(slide.texto)}</div>`;
+    } else if (slide.items) {
+      listHTML = `<div class="s-list">` + slide.items.map(it =>
+        `<div class="s-arrow-item"><span class="s-arrow">→</span><span class="s-body" style="margin:0">${highlight(it)}</span></div>`
+      ).join('') + `</div>`;
+    }
+
+    return `<div class="s-inner">
+      ${topbar}
+      ${slide.label ? `<div class="s-label">${slide.label}</div>` : '<div class="s-accent-bar"></div>'}
+      <div class="s-headline">${highlight(slide.headline)}</div>
+      ${listHTML}
+      <div class="s-footer"></div>
+    </div>`;
+  }
+
+  function buildCopyText(slide) {
+    let txt = '';
+    if (slide.headline) txt += slide.headline + '\n';
+    if (slide.subheadline) txt += slide.subheadline + '\n';
+    if (slide.subtexto) txt += slide.subtexto + '\n';
+    if (slide.texto) txt += slide.texto + '\n';
+    if (slide.label) txt += '\n' + slide.label + '\n';
+    if (slide.items) txt += slide.items.map(it => '→ ' + it).join('\n') + '\n';
+    if (slide.cta) txt += '\n' + slide.cta;
+    return txt.trim().replace(/\*(.*?)\*/g, '$1');
+  }
+
+  function copiarSlide(btn, encoded) {
+    const txt = decodeURIComponent(encoded);
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
+  }
+
+  function copiarTudo() {
+    const slides = document.querySelectorAll('.copy-slide-content');
+    let txt = '';
+    slides.forEach((s, i) => {
+      txt += `--- SLIDE ${i+1} ---\n${s.textContent}\n\n`;
+    });
+    navigator.clipboard.writeText(txt).then(() => {
+      const btn = document.getElementById('btn-copy-all');
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar todos os textos', 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
